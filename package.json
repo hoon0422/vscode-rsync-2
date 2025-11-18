@@ -1,13 +1,13 @@
 {
-  "name": "sync-rsync-extended",
-  "displayName": "Sync-Rsync Extended",
-  "description": "Enhanced sync with remote using rsync - Extended version with additional features",
-  "version": "1.0.1",
+  "name": "sync-rsync-3",
+  "displayName": "Sync-Rsync 3",
+  "description": "Another enhanced version of sync-rsync",
+  "version": "1.0.0",
   "icon": "images/rsync-extended-icon.png",
-  "publisher": "SanderVerschoor",
+  "publisher": "Younghoon Jeong",
   "repository": {
     "type": "git",
-    "url": "https://github.com/SandBlock/vscode-rsync-extended"
+    "url": "https://github.com/SandBlock/vscode-rsync-2"
   },
   "engines": {
     "vscode": "^1.85.0"
@@ -492,6 +492,7 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
+    "@types/rsync": "^0.4.36",
     "@vscode/vsce": "^3.3.0",
     "chokidar": "^4.0.3",
     "lodash": "^4.17.21",

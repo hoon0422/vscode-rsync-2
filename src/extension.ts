@@ -1,7 +1,7 @@
 'use strict';
 
 import * as child from 'child_process';
-import watch from 'chokidar';
+import chokidar from 'chokidar';
 import { debounce } from 'lodash';
 import Rsync from 'rsync';
 import {
@@ -95,8 +95,9 @@ class RsyncExtension {
                 }
 
                 this.currentSync.on('close', (code) => {
-                    if (error) return;
-                    resolve({ success: code === 0, code: code ?? 1 });
+                    if (!error) {
+                        resolve({ success: code === 0, code: code ?? 1 });
+                    }
                 });
             } catch (err) {
                 this.outputChannel.append(`ERROR > ${err instanceof Error ? err.message : String(err)}`);
@@ -105,7 +106,7 @@ class RsyncExtension {
         });
     }
 
-    private async runSync(rsync: Rsync, paths: string[], site: Site, config: Config): Promise<CommandResult> {
+    private async runSync(rsync: InstanceType<typeof Rsync>, paths: string[], site: Site, config: Config): Promise<CommandResult> {
         const syncStartTime = new Date();
         const isDryRun = rsync.isSet('n');
         this.outputChannel.appendLine(`\n${syncStartTime.toString()} ${isDryRun ? 'comparing' : 'syncing'}`);
@@ -128,7 +129,9 @@ class RsyncExtension {
             return true;
         }
 
-        if (this.syncKilled) return false;
+        if (this.syncKilled) {
+            return false;
+        }
 
         if (!site.localPath) {
             vscWindow.showErrorMessage('Sync-Rsync: you must have a folder open or configured local');
@@ -140,18 +143,21 @@ class RsyncExtension {
             return false;
         }
 
-        const rsync = new Rsync();
+        let rsync = new Rsync();
         const paths = down ? [site.remotePath, site.localPath] : [site.localPath, site.remotePath];
 
         if (dry) {
             rsync.dry();
         }
 
-        site.options.forEach(option => rsync.set.apply(rsync, option));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        site.options.forEach(option => rsync.set(...(option as [string, ...any[]])));
 
-        rsync
-            .flags(site.flags)
-            .progress(config.showProgress);
+        rsync = rsync.flags(site.flags);
+
+        if (config.showProgress) {
+            rsync = rsync.progress();
+        }
 
         if (site.include.length > 0) {
             rsync.include(site.include);
@@ -174,7 +180,9 @@ class RsyncExtension {
         }
 
         const runPrePost = async (command: string[] | undefined, tag: string): Promise<boolean> => {
-            if (!command) return true;
+            if (!command) {
+                return true;
+            }
             const result = await this.runCommand(site, config, command);
             if (!result.success) {
                 vscWindow.showErrorMessage(`${tag} returned ${result.code}`);
@@ -270,9 +278,10 @@ class RsyncExtension {
         this.syncKilled = false;
 
         const paths = down ? [this.currentSite.remotePath + file, this.currentSite.localPath + file] : [this.currentSite.localPath + file, this.currentSite.remotePath + file];
-        const rsync = new Rsync()
-            .flags(this.currentSite.flags)
-            .progress(config.showProgress);
+        let rsync = new Rsync().flags(this.currentSite.flags);
+        if (config.showProgress) {
+            rsync = rsync.progress();
+        }
 
         if (this.currentSite.include.length > 0) {
             rsync.include(this.currentSite.include);
@@ -319,10 +328,12 @@ class RsyncExtension {
     }
 
     private watch(config: Config): void {
-        if (config.watchGlobs.length === 0) return;
+        if (config.watchGlobs.length === 0) {
+            return;
+        }
 
-        const watcher = watch(config.watchGlobs, {
-            ignored: /(^|[\/\\])\../,
+        const watcher = chokidar.watch(config.watchGlobs, {
+            ignored: /(^|[/\\])\../,
             persistent: true
         });
 
@@ -367,7 +378,7 @@ class RsyncExtension {
     private async showSiteMenu(): Promise<void> {
         const config = this.getConfig();
         const sites = config.sites;
-        
+
         if (sites.length === 0) {
             vscWindow.showErrorMessage('No sites configured');
             return;
@@ -507,4 +518,4 @@ export function activate(context: ExtensionContext): void {
 
 export function deactivate(): void {
     // Cleanup is handled by the extension instance
-} 
+}
